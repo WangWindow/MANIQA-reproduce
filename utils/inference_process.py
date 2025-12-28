@@ -1,5 +1,30 @@
 import numpy as np
 import torch
+import tqdm
+
+
+def eval_epoch(config, net, test_loader):
+    with torch.no_grad():
+        net.eval()
+        name_list = []
+        pred_list = []
+        with open(config.valid_path + "/output.txt", "w") as f:
+            for data in tqdm(test_loader):
+                pred = 0
+                for i in range(config.num_avg_val):
+                    x_d = data["d_img_org"].cuda()
+                    x_d = five_point_crop(i, d_img=x_d, config=config)
+                    pred += net(x_d)
+
+                pred /= config.num_avg_val
+                d_name = data["d_name"]
+                pred = pred.cpu().numpy()
+                name_list.extend(d_name)
+                pred_list.extend(pred)
+            for i in range(len(name_list)):
+                f.write(name_list[i] + "," + str(pred_list[i]) + "\n")
+            print(len(name_list))
+        f.close()
 
 
 def sort_file(file_path):

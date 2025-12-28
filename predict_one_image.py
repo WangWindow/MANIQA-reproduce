@@ -1,5 +1,4 @@
 import os
-import random
 
 import cv2
 import numpy as np
@@ -8,21 +7,10 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from backbones.maniqa import MANIQA
-from utils.config import Config
+from utils.config import Config, setup_seed
 from utils.inference_process import Normalize, ToTensor
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-
-def setup_seed(seed):
-    random.seed(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
 
 
 class Image(torch.utils.data.Dataset):
@@ -73,7 +61,7 @@ if __name__ == "__main__":
     config = Config(
         {
             # image path
-            "image_path": "./test_images/kunkun.png",
+            "image_path": "./assets/demo_imgs/2.jpg",
             # valid times
             "num_crops": 20,
             # model

@@ -1,52 +1,14 @@
 import os
-import random
 
-import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from tqdm import tqdm
 
-from data.PIPAL22.pipal22_test import PIPAL22
-from utils.config import Config
-from utils.inference_process import Normalize, ToTensor, five_point_crop, sort_file
+from utils.config import Config, setup_seed
+from utils.inference_process import Normalize, ToTensor, eval_epoch, sort_file
+from utils.PIPAL22.pipal22_test import PIPAL22
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "5"
-
-
-def setup_seed(seed):
-    random.seed(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
-
-
-def eval_epoch(config, net, test_loader):
-    with torch.no_grad():
-        net.eval()
-        name_list = []
-        pred_list = []
-        with open(config.valid_path + "/output.txt", "w") as f:
-            for data in tqdm(test_loader):
-                pred = 0
-                for i in range(config.num_avg_val):
-                    x_d = data["d_img_org"].cuda()
-                    x_d = five_point_crop(i, d_img=x_d, config=config)
-                    pred += net(x_d)
-
-                pred /= config.num_avg_val
-                d_name = data["d_name"]
-                pred = pred.cpu().numpy()
-                name_list.extend(d_name)
-                pred_list.extend(pred)
-            for i in range(len(name_list)):
-                f.write(name_list[i] + "," + str(pred_list[i]) + "\n")
-            print(len(name_list))
-        f.close()
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 if __name__ == "__main__":
@@ -73,9 +35,9 @@ if __name__ == "__main__":
             # device
             "num_workers": 8,
             # load & save checkpoint
-            "valid": "./output/valid",
-            "valid_path": "./output/valid/inference_valid",
-            "model_path": "./output/models/model_maniqa/epoch1",
+            "valid": "./checkpoints/valid",
+            "valid_path": "./checkpoints/valid/inference_valid",
+            "model_path": "./checkpoints/models/model_maniqa/epoch1",
         }
     )
 
