@@ -19,6 +19,7 @@ from utils.process import (
     set_logging,
     split_dataset_kadid10k,
     split_dataset_koniq10k,
+    split_dataset_roi,
     train_epoch,
 )
 
@@ -40,7 +41,7 @@ if __name__ == "__main__":
     config = Config(
         {
             # dataset path
-            "dataset_name": "koniq10k",
+            "dataset_name": "roi",
             # PIPAL
             "train_dis_path": "/mnt/IQA_dataset/PIPAL22/Train_dis/",
             "val_dis_path": "/mnt/IQA_dataset/PIPAL22/Val_dis/",
@@ -52,6 +53,9 @@ if __name__ == "__main__":
             # KONIQ-10K
             "koniq10k_path": "/mnt/IQA_dataset/1024x768/",
             "koniq10k_label": "./data/koniq10k/koniq10k_label.txt",
+            # ROI_Data + pseudo labels (sdd-fiqa)
+            "roi_base_dir": ".",
+            "roi_label": "./utils/roi_dataset/sdd_quality_pseudo_labels.txt",
             # optimization
             "batch_size": 8,
             "learning_rate": 1e-5,
@@ -80,12 +84,12 @@ if __name__ == "__main__":
             "num_tab": 2,
             "scale": 0.8,
             # load & save checkpoint
-            "model_name": "koniq10k-base_s20",
-            "type_name": "Koniq10k",
-            "ckpt_path": "./output/models/",  # directory for saving checkpoint
-            "log_path": "./output/log/",
+            "model_name": "roi_s20",
+            "type_name": "ROI",
+            "ckpt_path": "./checkpoints/models/",  # directory for saving checkpoint
+            "log_path": "./checkpoints/log/",
             "log_file": ".log",
-            "tensorboard_path": "./output/tensorboard/",
+            "tensorboard_path": "./checkpoints/tensorboard/",
         }
     )
 
@@ -139,33 +143,71 @@ if __name__ == "__main__":
         label_train_path = config.koniq10k_label
         label_val_path = config.koniq10k_label
         Dataset = Koniq10k
+    elif config.dataset_name == "roi":
+        from utils.roi_dataset.roi_dataset import ROIDataset
+
+        train_name, val_name = split_dataset_roi(
+            txt_file_name=config.roi_label, split_seed=config.split_seed
+        )
+        dis_train_path = config.roi_base_dir
+        dis_val_path = config.roi_base_dir
+        label_train_path = config.roi_label
+        label_val_path = config.roi_label
+        Dataset = ROIDataset
     else:
         pass
 
     # data load
-    train_dataset = Dataset(
-        dis_path=dis_train_path,
-        txt_file_name=label_train_path,
-        list_name=train_name,
-        transform=transforms.Compose(
-            [
-                RandCrop(patch_size=config.crop_size),
-                Normalize(0.5, 0.5),
-                RandHorizontalFlip(prob_aug=config.prob_aug),
-                ToTensor(),
-            ]
-        ),
-        keep_ratio=config.train_keep_ratio,
-    )
-    val_dataset = Dataset(
-        dis_path=dis_val_path,
-        txt_file_name=label_val_path,
-        list_name=val_name,
-        transform=transforms.Compose(
-            [RandCrop(patch_size=config.crop_size), Normalize(0.5, 0.5), ToTensor()]
-        ),
-        keep_ratio=config.val_keep_ratio,
-    )
+    if config.dataset_name == "roi":
+        train_dataset = Dataset(
+            base_dir=dis_train_path,
+            txt_file_name=label_train_path,
+            list_name=train_name,
+            transform=transforms.Compose(
+                [
+                    RandCrop(patch_size=config.crop_size),
+                    Normalize(0.5, 0.5),
+                    RandHorizontalFlip(prob_aug=config.prob_aug),
+                    ToTensor(),
+                ]
+            ),
+            keep_ratio=config.train_keep_ratio,
+            img_size=config.img_size,
+        )
+        val_dataset = Dataset(
+            base_dir=dis_val_path,
+            txt_file_name=label_val_path,
+            list_name=val_name,
+            transform=transforms.Compose(
+                [RandCrop(patch_size=config.crop_size), Normalize(0.5, 0.5), ToTensor()]
+            ),
+            keep_ratio=config.val_keep_ratio,
+            img_size=config.img_size,
+        )
+    else:
+        train_dataset = Dataset(
+            dis_path=dis_train_path,
+            txt_file_name=label_train_path,
+            list_name=train_name,
+            transform=transforms.Compose(
+                [
+                    RandCrop(patch_size=config.crop_size),
+                    Normalize(0.5, 0.5),
+                    RandHorizontalFlip(prob_aug=config.prob_aug),
+                    ToTensor(),
+                ]
+            ),
+            keep_ratio=config.train_keep_ratio,
+        )
+        val_dataset = Dataset(
+            dis_path=dis_val_path,
+            txt_file_name=label_val_path,
+            list_name=val_name,
+            transform=transforms.Compose(
+                [RandCrop(patch_size=config.crop_size), Normalize(0.5, 0.5), ToTensor()]
+            ),
+            keep_ratio=config.val_keep_ratio,
+        )
 
     logging.info("number of train scenes: {}".format(len(train_dataset)))
     logging.info("number of val scenes: {}".format(len(val_dataset)))
@@ -183,7 +225,7 @@ if __name__ == "__main__":
         dataset=val_dataset,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
-        drop_last=True,
+        drop_last=False,
         shuffle=False,
     )
 

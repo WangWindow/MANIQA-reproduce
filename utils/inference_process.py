@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-import tqdm
+from tqdm import tqdm
 
 
 def eval_epoch(config, net, test_loader):
@@ -27,16 +27,19 @@ def eval_epoch(config, net, test_loader):
         f.close()
 
 
-def sort_file(file_path):
-    f2 = open(file_path, "r")
-    lines = f2.readlines()
+def sort_file(file_path, out_path=None):
+    with open(file_path, "r") as f:
+        lines = f.readlines()
+
     ret = []
     for line in lines:
-        line = line[:-1]
-        ret.append(line)
+        line = line.rstrip("\n")
+        if line:
+            ret.append(line)
     ret.sort()
 
-    with open("./output.txt", "w") as f:
+    target_path = out_path or file_path
+    with open(target_path, "w") as f:
         for i in ret:
             f.write(i + "\n")
 

@@ -3,8 +3,8 @@ import os
 
 import numpy as np
 import torch
-import tqdm
 from scipy.stats import pearsonr, spearmanr
+from tqdm import tqdm
 
 
 def set_logging(config):
@@ -178,6 +178,36 @@ def split_dataset_kadid10k(txt_file_name, split_seed=20):
     l = len(object_data)
     train_name = object_data[: int(l * 0.8)]
     val_name = object_data[int(l * 0.8) :]
+    return train_name, val_name
+
+
+def split_dataset_roi(txt_file_name, split_seed=20, train_ratio=0.8):
+    """Split ROI pseudo label txt into train/val lists.
+
+    The txt format is: `image_path score` (tab or space separated).
+    We split by image_path (one image per line).
+    """
+
+    np.random.seed(split_seed)
+    img_list = []
+    with open(txt_file_name, "r") as listFile:
+        for line in listFile:
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            img_path = parts[0]
+            img_list.append(img_path)
+
+    np.random.shuffle(img_list)
+    np.random.seed(20)
+
+    l = len(img_list)
+    split_idx = int(l * train_ratio)
+    train_name = img_list[:split_idx]
+    val_name = img_list[split_idx:]
     return train_name, val_name
 
 

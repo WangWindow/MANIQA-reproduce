@@ -1,9 +1,8 @@
+import timm
 import torch
 import torch.nn as nn
-from einops import rearrange
-
-import timm
 from backbones.swin import SwinTransformer
+from einops import rearrange
 from timm.models.vision_transformer import Block
 
 

@@ -76,7 +76,7 @@ if __name__ == "__main__":
             "num_tab": 2,
             "scale": 0.8,
             # checkpoint path
-            "ckpt_path": "./ckpt_koniq10k.pt",
+            "ckpt_path": "./checkpoints/models/ROI/roi-base_s20/epoch1.pt",
         }
     )
 
